@@ -10,4 +10,6 @@ export default {
   APP_DESCRIPTION: process.env.APP_DESCRIPTION,
   APP_DEBUG: process.env.APP_DEBUG === "true",
   SIIAPI_URL: process.env.SIIAPI_URL,
+  MONGODB_URI: process.env.MONGODB_URI,
+  CACHE_TTL_MINUTES: parseInt(process.env.CACHE_TTL_MINUTES ?? "1440", 10),
 };
