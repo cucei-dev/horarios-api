@@ -17,18 +17,37 @@ export interface SiiapiCentro {
   siiau_id: string;
 }
 
-export interface SiiapiEdificio {
-  id: number;
-  name: string;
-  centro_id: number;
-  centro?: SiiapiCentro;
-}
-
-export interface SiiapiAula {
+// As returned by /api/v1/aulas/ (edificio without centro)
+export interface SiiapiAulaRaw {
   id: number;
   name: string;
   edificio_id: number;
-  edificio?: SiiapiEdificio;
+  edificio?: {
+    id: number;
+    name: string;
+    centro_id: number;
+    // NOTE: centro is NOT embedded in the aulas endpoint response
+  };
+}
+
+// As returned by /api/v1/edificios/ (includes full centro + aulas list)
+export interface SiiapiEdificioFull {
+  id: number;
+  name: string;
+  centro_id: number;
+  centro: SiiapiCentro;
+  aulas: Array<{ id: number; name: string; edificio_id: number }>;
+}
+
+// Resolved aula with full location hierarchy (built from edificios data)
+export interface SiiapiAulaResolved {
+  id: number;
+  name: string;
+  edificio: {
+    id: number;
+    name: string;
+    centro: SiiapiCentro;
+  };
 }
 
 export interface SiiapiMateria {
@@ -142,15 +161,35 @@ export async function fetchSeccionesByCalendario(
 }
 
 /**
- * Fetches all aulas and builds a lookup map: aula_id → SiiapiAula (with edificio embedded).
+ * Fetches all edificios and builds a lookup map: aula_id → SiiapiAulaResolved.
+ * Uses /api/v1/edificios/ because it's the only endpoint that embeds both
+ * the full centro object AND the aulas list in a single response.
  */
-export async function fetchAulaMap(): Promise<Map<number, SiiapiAula>> {
-  console.log(`[SIIAPI] Fetching all aulas`);
-  const aulas = await fetchAllPages<SiiapiAula>("/api/v1/aulas/");
-  console.log(`[SIIAPI] Fetched ${aulas.length} aulas`);
-  const map = new Map<number, SiiapiAula>();
-  for (const aula of aulas) {
-    map.set(aula.id, aula);
+export async function fetchAulaMap(): Promise<Map<number, SiiapiAulaResolved>> {
+  console.log(`[SIIAPI] Fetching all edificios to build aula lookup map`);
+  const edificios = await fetchAllPages<SiiapiEdificioFull>("/api/v1/edificios/");
+  console.log(`[SIIAPI] Fetched ${edificios.length} edificios`);
+
+  const map = new Map<number, SiiapiAulaResolved>();
+
+  for (const edificio of edificios) {
+    if (!edificio.centro || !edificio.aulas?.length) {
+      console.warn(`[SIIAPI] Edificio id=${edificio.id} skipped — missing centro or aulas`);
+      continue;
+    }
+    for (const aula of edificio.aulas) {
+      map.set(aula.id, {
+        id: aula.id,
+        name: aula.name,
+        edificio: {
+          id: edificio.id,
+          name: edificio.name,
+          centro: edificio.centro,
+        },
+      });
+    }
   }
+
+  console.log(`[SIIAPI] Aula map built with ${map.size} entries from ${edificios.length} edificios`);
   return map;
 }

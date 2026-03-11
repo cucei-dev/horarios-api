@@ -5,7 +5,7 @@ import {
   fetchSeccionesByCalendario,
   fetchAulaMap,
   type SiiapiSeccion,
-  type SiiapiAula,
+  type SiiapiAulaResolved,
 } from "./siiapi.service.js";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -110,7 +110,7 @@ async function syncCalendario(calendarioId: number): Promise<void> {
  */
 function buildClaseDocuments(
   secciones: SiiapiSeccion[],
-  aulaMap: Map<number, SiiapiAula>
+  aulaMap: Map<number, SiiapiAulaResolved>
 ): ClaseData[] {
   const docs: ClaseData[] = [];
   let skippedMissingRelations = 0;
@@ -140,13 +140,14 @@ function buildClaseDocuments(
 
     for (const clase of seccion.clases) {
       const aula = aulaMap.get(clase.aula_id);
-      const edificio = aula?.edificio;
-      const edilCentro = edificio?.centro;
 
-      if (!aula || !edificio || !edilCentro) {
-        console.warn(`[Sync] Clase id=${clase.id} skipped — aula_id=${clase.aula_id} not found in aula map or missing edificio/centro`);
+      if (!aula) {
+        console.warn(`[Sync] Clase id=${clase.id} skipped — aula_id=${clase.aula_id} not found in aula map`);
         continue;
       }
+
+      const edificio = aula.edificio;
+      const edilCentro = edificio.centro;
 
       docs.push({
         siiapi_id: clase.id,
