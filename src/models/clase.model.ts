@@ -144,6 +144,8 @@ ClaseSchema.index({ calendario_id: 1 });
 ClaseSchema.index({ calendario_id: 1, centro_id: 1 });
 ClaseSchema.index({ calendario_id: 1, edificio_id: 1 });
 ClaseSchema.index({ calendario_id: 1, aula_id: 1 });
+ClaseSchema.index({ calendario_id: 1, dia: 1 });
 ClaseSchema.index({ calendario_id: 1, centro_id: 1, edificio_id: 1, aula_id: 1 });
+ClaseSchema.index({ calendario_id: 1, centro_id: 1, edificio_id: 1, aula_id: 1, dia: 1 });
 
 export const ClaseModel = model<IClase>("Clase", ClaseSchema);

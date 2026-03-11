@@ -15,6 +15,7 @@ export interface HorariosFilter {
   centro_id?: number;
   edificio_id?: number;
   aula_id?: number;
+  dia?: number;
 }
 
 export interface HorariosResult {
@@ -43,6 +44,8 @@ async function isCacheValid(calendarioId: number): Promise<boolean | null> {
  * Updates the cache_entry on completion.
  */
 async function syncCalendario(calendarioId: number): Promise<void> {
+  console.log(`[Sync] Starting sync for calendario_id=${calendarioId}`);
+
   // Mark as refreshing to prevent concurrent syncs
   await CacheEntryModel.findOneAndUpdate(
     { calendario_id: calendarioId },
@@ -51,16 +54,19 @@ async function syncCalendario(calendarioId: number): Promise<void> {
   );
 
   try {
+    console.log(`[Sync] Fetching secciones and aulas from SIIAPI...`);
     // Fetch in parallel: secciones and aulas
     const [secciones, aulaMap] = await Promise.all([
       fetchSeccionesByCalendario(calendarioId),
       fetchAulaMap(),
     ]);
 
+    console.log(`[Sync] Building clase documents from ${secciones.length} secciones and ${aulaMap.size} aulas...`);
     const claseDocuments = buildClaseDocuments(secciones, aulaMap);
+    console.log(`[Sync] Built ${claseDocuments.length} clase documents`);
 
     if (claseDocuments.length > 0) {
-      // Upsert all clase documents by siiapi_id
+      console.log(`[Sync] Upserting ${claseDocuments.length} clases into MongoDB...`);
       const ops = claseDocuments.map((doc) => ({
         updateOne: {
           filter: { siiapi_id: doc.siiapi_id },
@@ -68,7 +74,10 @@ async function syncCalendario(calendarioId: number): Promise<void> {
           upsert: true,
         },
       }));
-      await ClaseModel.bulkWrite(ops, { ordered: false });
+      const bulkResult = await ClaseModel.bulkWrite(ops, { ordered: false });
+      console.log(`[Sync] bulkWrite done — upserted: ${bulkResult.upsertedCount}, modified: ${bulkResult.modifiedCount}`);
+    } else {
+      console.warn(`[Sync] No clase documents to upsert for calendario_id=${calendarioId}`);
     }
 
     const now = new Date();
@@ -84,7 +93,9 @@ async function syncCalendario(calendarioId: number): Promise<void> {
       },
       { upsert: true }
     );
+    console.log(`[Sync] Cache entry updated. Expires in ${config.CACHE_TTL_MINUTES} minutes`);
   } catch (err) {
+    console.error(`[Sync] Error syncing calendario_id=${calendarioId}:`, err);
     // Release refreshing lock on error
     await CacheEntryModel.findOneAndUpdate(
       { calendario_id: calendarioId },
@@ -102,23 +113,40 @@ function buildClaseDocuments(
   aulaMap: Map<number, SiiapiAula>
 ): ClaseData[] {
   const docs: ClaseData[] = [];
+  let skippedMissingRelations = 0;
+  let skippedNoClases = 0;
 
   for (const seccion of secciones) {
-    if (!seccion.clases?.length) continue;
+    if (!seccion.clases?.length) {
+      skippedNoClases++;
+      continue;
+    }
 
     const calendario = seccion.calendario;
     const centro = seccion.centro;
     const materia = seccion.materia;
     const profesor = seccion.profesor;
 
-    if (!calendario || !centro || !materia || !profesor) continue;
+    if (!calendario || !centro || !materia || !profesor) {
+      console.warn(`[Sync] Seccion id=${seccion.id} skipped — missing: ${[
+        !calendario && "calendario",
+        !centro && "centro",
+        !materia && "materia",
+        !profesor && "profesor",
+      ].filter(Boolean).join(", ")}`);
+      skippedMissingRelations++;
+      continue;
+    }
 
     for (const clase of seccion.clases) {
       const aula = aulaMap.get(clase.aula_id);
       const edificio = aula?.edificio;
       const edilCentro = edificio?.centro;
 
-      if (!aula || !edificio || !edilCentro) continue;
+      if (!aula || !edificio || !edilCentro) {
+        console.warn(`[Sync] Clase id=${clase.id} skipped — aula_id=${clase.aula_id} not found in aula map or missing edificio/centro`);
+        continue;
+      }
 
       docs.push({
         siiapi_id: clase.id,
@@ -180,6 +208,7 @@ function buildClaseDocuments(
     }
   }
 
+  console.log(`[Sync] buildClaseDocuments: ${docs.length} docs built, ${skippedNoClases} secciones with no clases, ${skippedMissingRelations} secciones with missing relations`);
   return docs;
 }
 
@@ -192,6 +221,7 @@ function buildMongoFilter(filter: HorariosFilter): Record<string, unknown> {
   if (filter.centro_id !== undefined) query["centro_id"] = filter.centro_id;
   if (filter.edificio_id !== undefined) query["edificio_id"] = filter.edificio_id;
   if (filter.aula_id !== undefined) query["aula_id"] = filter.aula_id;
+  if (filter.dia !== undefined) query["dia"] = filter.dia;
   return query;
 }
 
@@ -215,28 +245,35 @@ export async function getHorarios(
   skip = 0,
   limit = 50
 ): Promise<HorariosResult> {
+  console.log(`[Horarios] Request — filter: ${JSON.stringify(filter)}, skip=${skip}, limit=${limit}`);
   const cacheStatus = await isCacheValid(filter.calendario_id);
+  console.log(`[Horarios] Cache status for calendario_id=${filter.calendario_id}: ${cacheStatus === null ? "MISS (no data)" : cacheStatus ? "HIT (fresh)" : "STALE"}`);
 
   // Cache miss: fetch synchronously, then respond
   if (cacheStatus === null) {
+    console.log(`[Horarios] Cache miss — syncing from SIIAPI...`);
     await syncCalendario(filter.calendario_id);
     const { total, results } = await queryMongo(filter, skip, limit);
+    console.log(`[Horarios] Returning ${results.length}/${total} results (MISS)`);
     return { total, results, from_cache: false, stale: false };
   }
 
   // Cache hit (fresh): respond from MongoDB
   if (cacheStatus === true) {
     const { total, results } = await queryMongo(filter, skip, limit);
+    console.log(`[Horarios] Returning ${results.length}/${total} results (HIT)`);
     return { total, results, from_cache: true, stale: false };
   }
 
   // Cache stale: respond from MongoDB immediately, refresh in background
+  console.log(`[Horarios] Cache stale — responding with cached data, refreshing in background...`);
   const { total, results } = await queryMongo(filter, skip, limit);
 
   // Fire-and-forget background refresh (avoid blocking the response)
   syncCalendario(filter.calendario_id).catch((err: unknown) => {
-    console.error(`Background sync failed for calendario_id=${filter.calendario_id}:`, err);
+    console.error(`[Horarios] Background sync failed for calendario_id=${filter.calendario_id}:`, err);
   });
 
+  console.log(`[Horarios] Returning ${results.length}/${total} results (STALE)`);
   return { total, results, from_cache: true, stale: true };
 }

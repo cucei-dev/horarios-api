@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import { getHorarios, type HorariosFilter } from "../services/horarios.service.js";
 
 export const getHorariosHandler = async (req: Request, res: Response): Promise<void> => {
+  console.log(`[Controller] GET /api/v1/horarios — query: ${JSON.stringify(req.query)}`);
+
   const calendarioId = parseInt(String(req.query["calendario_id"]), 10);
 
   if (isNaN(calendarioId) || calendarioId <= 0) {
@@ -22,11 +24,16 @@ export const getHorariosHandler = async (req: Request, res: Response): Promise<v
   const aulaId = parseInt(String(req.query["aula_id"]), 10);
   if (!isNaN(aulaId) && aulaId > 0) filter.aula_id = aulaId;
 
+  const dia = parseInt(String(req.query["dia"]), 10);
+  if (!isNaN(dia) && dia >= 0) filter.dia = dia;
+
   const skip = Math.max(0, parseInt(String(req.query["skip"] ?? "0"), 10) || 0);
   const limit = Math.min(
     100,
     Math.max(1, parseInt(String(req.query["limit"] ?? "50"), 10) || 50)
   );
+
+  console.log(`[Controller] Parsed filter: ${JSON.stringify(filter)}, skip=${skip}, limit=${limit}`);
 
   try {
     const result = await getHorarios(filter, skip, limit);
@@ -41,7 +48,7 @@ export const getHorariosHandler = async (req: Request, res: Response): Promise<v
       results: result.results,
     });
   } catch (err: unknown) {
-    console.error("Error in getHorariosHandler:", err);
+    console.error("[Controller] Error in getHorariosHandler:", err);
     res.status(502).json({ error: "Error al obtener datos de horarios." });
   }
 };
