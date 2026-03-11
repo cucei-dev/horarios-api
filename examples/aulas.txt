@@ -1,0 +1,24 @@
+Lista todas las aulas. Máximo 100.
+
+/api/v1/aulas/
+edificio_id: integer | null
+name: string | null
+search: string | null // busca por "name"
+skip: integer | null >= 0
+limit: integer | null [1 .. 100]
+
+{
+  "total": 0,
+  "results": [
+    {
+      "name": "string",
+      "edificio_id": 0,
+      "id": 0,
+      "edificio": {
+        "name": "string",
+        "centro_id": 0,
+        "id": 0
+      },
+    }
+  ]
+}

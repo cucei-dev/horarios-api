@@ -1,0 +1,43 @@
+Lista todas las clases. Máximo 100.
+
+/api/v1/clases/
+seccion_id: integer | null
+aula_id: integer | null
+hora_inicio: string | null
+hora_fin: string | null
+dia: integer | null
+skip: integer | null >= 0
+limit: integer | null [1 .. 100]
+
+{
+  "total": 0,
+  "results": [
+    {
+      "sesion": 0,
+      "hora_inicio": "14:15:22Z",
+      "hora_fin": "14:15:22Z",
+      "dia": 0,
+      "seccion_id": 0,
+      "aula_id": 0,
+      "id": 0,
+      "seccion": {
+        "name": "string",
+        "nrc": "string",
+        "cupos": 0,
+        "cupos_disponibles": 0,
+        "periodo_inicio": "2019-08-24T14:15:22Z",
+        "periodo_fin": "2019-08-24T14:15:22Z",
+        "centro_id": 0,
+        "materia_id": 0,
+        "profesor_id": 0,
+        "calendario_id": 0,
+        "id": 0
+      },
+      "aula": {
+        "name": "string",
+        "edificio_id": 0,
+        "id": 0
+      }
+    }
+  ]
+}

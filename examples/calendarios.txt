@@ -1,0 +1,18 @@
+Lista todos los calendarios. Máximo 100.
+
+/api/v1/calendarios/
+siiau_id: integer | null
+search: string | null // busca por "name"
+skip: integer | null >= 0
+limit: integer | null [1 .. 100]
+
+{
+  "total": 0,
+  "results": [
+    {
+      "name": "string",
+      "siiau_id": "string",
+      "id": 0
+    }
+  ]
+}

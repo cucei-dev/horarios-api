@@ -1,0 +1,19 @@
+Lista todas las materias. Máximo 100.
+
+/api/v1/materias/
+clave: string | null
+search: string | null // busca por "name"
+skip: integer | null >= 0
+limit: integer | null [1 .. 100]
+
+{
+  "total": 0,
+  "results": [
+    {
+      "name": "string",
+      "creditos": 0,
+      "clave": "string",
+      "id": 0
+    }
+  ]
+}

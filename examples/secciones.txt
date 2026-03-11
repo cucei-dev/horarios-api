@@ -1,0 +1,61 @@
+Lista todas las secciones. Máximo 100.
+
+/api/v1/secciones/
+nrc: string | null
+centro_id: integer | null
+materia_id: integer | null
+profesor_id: integer | null
+calendario_id: integer | null
+search: string | null // busca por "name"
+skip: integer | null >= 0
+limit: integer | null [1 .. 100]
+
+{
+  "total": 0,
+  "results": [
+    {
+      "name": "string",
+      "nrc": "string",
+      "cupos": 0,
+      "cupos_disponibles": 0,
+      "periodo_inicio": "2019-08-24T14:15:22Z",
+      "periodo_fin": "2019-08-24T14:15:22Z",
+      "centro_id": 0,
+      "materia_id": 0,
+      "profesor_id": 0,
+      "calendario_id": 0,
+      "id": 0,
+      "centro": {
+        "name": "string",
+        "siiau_id": "string",
+        "id": 0
+      },
+      "materia": {
+        "name": "string",
+        "creditos": 0,
+        "clave": "string",
+        "id": 0
+      },
+      "profesor": {
+        "name": "string",
+        "id": 0
+      },
+      "calendario": {
+        "name": "string",
+        "siiau_id": "string",
+        "id": 0
+      },
+      "clases": [
+        {
+          "sesion": 0,
+          "hora_inicio": "14:15:22Z",
+          "hora_fin": "14:15:22Z",
+          "dia": 0,
+          "seccion_id": 0,
+          "aula_id": 0,
+          "id": 0
+        }
+      ]
+    }
+  ]
+}

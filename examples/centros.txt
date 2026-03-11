@@ -1,0 +1,25 @@
+Lista todos los Centros Universitarios. Máximo 100.
+
+/api/v1/centros/
+siiau_id: integer | null
+search: string | null // busca por "name"
+skip: integer | null >= 0
+limit: integer | null [1 .. 100]
+
+{
+  "total": 0,
+  "results": [
+    {
+      "name": "string",
+      "siiau_id": "string",
+      "id": 0,
+      "edificios": [
+        {
+          "name": "string",
+          "centro_id": 0,
+          "id": 0
+        }
+      ]
+    }
+  ]
+}

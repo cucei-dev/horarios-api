@@ -1,0 +1,32 @@
+Lista todos los profesores. Máximo 100.
+
+/api/v1/profesores/
+name: string | null
+search: string | null // busca por "name"
+skip: integer | null >= 0
+limit: integer | null [1 .. 100]
+
+{
+  "total": 0,
+  "results": [
+    {
+      "name": "string",
+      "id": 0,
+      "secciones": [
+        {
+          "name": "string",
+          "nrc": "string",
+          "cupos": 0,
+          "cupos_disponibles": 0,
+          "periodo_inicio": "2019-08-24T14:15:22Z",
+          "periodo_fin": "2019-08-24T14:15:22Z",
+          "centro_id": 0,
+          "materia_id": 0,
+          "profesor_id": 0,
+          "calendario_id": 0,
+          "id": 0
+        }
+      ]
+    }
+  ]
+}
