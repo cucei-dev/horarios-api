@@ -3,7 +3,7 @@ import { Router } from "express";
 import { getStatus } from "./controllers/status.controller.js";
 import horariosRouter from "./routes/horarios.routes.js";
 
-const router = Router();
+const router: Router = Router();
 
 router.get("/", getStatus);
 router.get("/api", getStatus);

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getHorariosHandler } from "../controllers/horarios.controller.js";
 
-const horariosRouter = Router();
+const horariosRouter: Router = Router();
 
 horariosRouter.get("/", getHorariosHandler);
 
