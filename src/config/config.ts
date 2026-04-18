@@ -1,7 +1,3 @@
-import { loadEnvFile } from 'node:process';
- 
-loadEnvFile();
-
 export default {
   APP_PORT: process.env.PORT || 3000,
   APP_VERSION: "1.0.0",
@@ -11,5 +7,5 @@ export default {
   APP_DEBUG: process.env.APP_DEBUG === "true",
   SIIAPI_URL: process.env.SIIAPI_URL ?? "https://api.cucei.dev",
   MONGODB_URI: process.env.MONGODB_URI ?? "mongodb://localhost:27017/horarios",
-  CACHE_TTL_MINUTES: parseInt(process.env.CACHE_TTL_MINUTES ?? "1440", 10),
+  CACHE_TTL_MINUTES: Number.parseInt(process.env.CACHE_TTL_MINUTES ?? "1440", 10),
 };
